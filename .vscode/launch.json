@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+      {
+        "name": "Launch Debug",
+        "type": "lldb",
+        "request": "launch",
+        "program": "$/Users/oyil/shellfish-tracking/target/debug/shellfish-tracking",
+        "args": [],
+        "cwd": "$/Users/oyil/shellfish-tracking",
+        "stopOnEntry": false,
+        "preLaunchTask": "cargo build",
+        "sourceLanguages": ["rust"]
+      }
+    ]
+  }
+  
