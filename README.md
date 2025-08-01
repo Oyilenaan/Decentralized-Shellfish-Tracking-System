@@ -53,7 +53,8 @@ This will:
 - Run integration tests in the `tests/` folder.
 
 ## 📜 License
-MIT License
+This project is licensed under the [MIT License](LICENSE).
+
 
 ## 🤝 Contributing
 Pull requests are welcome. For major changes, open an issue first to discuss what you want to change.
