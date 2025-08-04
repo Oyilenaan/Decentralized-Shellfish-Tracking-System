@@ -2,18 +2,18 @@
 
 A decentralized application for tracking and verifying the supply chain of shellfish products using Solana and Anchor.
 
-## 📌 Features
+## Features
 - Smart contract built with Rust + Anchor.
 - Deployable to a local Solana validator or Devnet.
 - Immutable and transparent record keeping.
 - Example client for interacting with the program.
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Blockchain:** Solana
 - **Smart Contracts:** Rust + Anchor
 - **Client:** Solana Web3 / CLI
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - [Rust](https://www.rust-lang.org/)
@@ -40,7 +40,7 @@ anchor deploy
 ### Interact with Program
 Use the Solana CLI or Anchor client to send transactions and query data.
 
-## 🧪 Example Usage
+## Example Usage
 After deploying locally, you can run:
 ```bash
 anchor test
@@ -52,13 +52,13 @@ This will:
 - Deploy the program.
 - Run integration tests in the `tests/` folder.
 
-## 📜 License
+## License
 This project is licensed under the [MIT License](LICENSE).
 
 
-## 🤝 Contributing
+## Contributing
 Pull requests are welcome. For major changes, open an issue first to discuss what you want to change.
 
-## 📬 Contact
+## Contact
 - GitHub: [Oyilenaan](https://github.com/Oyilenaan)
 - Email: oyilenaanbs@gmail.com
