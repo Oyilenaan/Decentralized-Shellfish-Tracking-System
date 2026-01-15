@@ -1,128 +1,95 @@
-// Solana Smart Contract for Shellfish Tracking
-// SPDX-License-Identifier: MIT
-
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::clock::Clock; // Import Clock to get the current timestamp
 
-// Declare the program ID at the crate root (outside of any modules)
-declare_id!("9R7cojRLBMXbM4np25sFuL6R65F3XY8SARZkTxrNS4gh");
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgK3B6Cr9cGz");
 
 #[program]
 pub mod shellfish_tracking {
     use super::*;
 
-    // New instruction to initialize the counter account.
-    pub fn initialize_counter(ctx: Context<InitializeCounter>) -> Result<()> {
-        let counter = &mut ctx.accounts.counter;
-        counter.count = 0;
-        msg!("Counter initialized to 0");
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        let state = &mut ctx.accounts.state;
+        state.batch_count = 0;
         Ok(())
     }
 
-    pub fn harvest_shellfish(
-        ctx: Context<HarvestShellfish>, 
-        species: String, 
-        harvester: String, 
-        location: String
-    ) -> Result<()> {
-        let batch = &mut ctx.accounts.batch;
-        batch.batch_id = ctx.accounts.counter.count;
-        batch.species = species;
-        batch.harvester = harvester;
-        batch.harvest_location = location;
-        batch.harvest_time = Clock::get()?.unix_timestamp;
-        batch.processing_details = String::from("");
-        batch.distribution_details = String::from("");
-        batch.is_processed = false;
-        batch.is_distributed = false;
-        ctx.accounts.counter.count += 1;
-        msg!("Harvested shellfish batch with id: {}", batch.batch_id);
+    pub fn add_batch(ctx: Context<AddBatch>, batch_id: String, origin: String) -> Result<()> {
+        let state = &mut ctx.accounts.state;
+        let clock = Clock::get()?;
+        let batch = ShellfishBatch {
+            batch_id,
+            origin,
+            timestamp: clock.unix_timestamp,
+        };
+        state.batches.push(batch);
+        state.batch_count += 1;
         Ok(())
     }
 
-    pub fn process_shellfish(
-        ctx: Context<ProcessShellfish>, 
-        details: String
-    ) -> Result<()> {
-        let batch = &mut ctx.accounts.batch;
-        require!(!batch.is_processed, CustomError::AlreadyProcessed);
-        batch.processing_details = details;
-        batch.is_processed = true;
-        msg!("Processed shellfish batch with id: {}", batch.batch_id);
-        Ok(())
-    }
+    pub fn harvest_shellfish(ctx: Context<HarvestShellfish>, batch_id: String, weight_kg: u32) -> Result<()> {
+        let harvest = &mut ctx.accounts.harvest;
+        let clock = Clock::get()?;
 
-    pub fn distribute_shellfish(
-        ctx: Context<DistributeShellfish>, 
-        details: String
-    ) -> Result<()> {
-        let batch = &mut ctx.accounts.batch;
-        require!(batch.is_processed, CustomError::NotProcessedYet);
-        require!(!batch.is_distributed, CustomError::AlreadyDistributed);
-        batch.distribution_details = details;
-        batch.is_distributed = true;
-        msg!("Distributed shellfish batch with id: {}", batch.batch_id);
+        harvest.batch_id = batch_id;
+        harvest.weight_kg = weight_kg;
+        harvest.harvest_time = clock.unix_timestamp;
+
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct InitializeCounter<'info> {
-    // Initialize the counter account with 16 bytes (8 for discriminator + 8 for u64)
-    #[account(init, payer = user, space = 16)]
-    pub counter: Account<'info, Counter>,
+pub struct Initialize<'info> {
+    #[account(init, payer = user, space = 8 + State::MAX_SIZE)]
+    pub state: Account<'info, State>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AddBatch<'info> {
+    #[account(mut)]
+    pub state: Account<'info, State>,
 }
 
 #[derive(Accounts)]
 pub struct HarvestShellfish<'info> {
-    #[account(init, payer = user, space = 400)]
-    pub batch: Account<'info, ShellfishBatch>,
-    #[account(mut)]
-    pub counter: Account<'info, Counter>,
+    #[account(init, payer = user, space = 8 + Harvest::MAX_SIZE)]
+    pub harvest: Account<'info, Harvest>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
-#[derive(Accounts)]
-pub struct ProcessShellfish<'info> {
-    #[account(mut)]
-    pub batch: Account<'info, ShellfishBatch>,
-}
-
-#[derive(Accounts)]
-pub struct DistributeShellfish<'info> {
-    #[account(mut)]
-    pub batch: Account<'info, ShellfishBatch>,
-}
-
 #[account]
+pub struct State {
+    pub batch_count: u32,
+    pub batches: Vec<ShellfishBatch>,
+}
+
+impl State {
+    pub const MAX_BATCHES: usize = 10;
+    pub const MAX_SIZE: usize = 4 + (State::MAX_BATCHES * ShellfishBatch::MAX_SIZE);
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct ShellfishBatch {
-    pub batch_id: u64,
-    pub species: String,
-    pub harvester: String,
-    pub harvest_location: String,
-    pub harvest_time: i64,
-    pub processing_details: String,
-    pub distribution_details: String,
-    pub is_processed: bool,
-    pub is_distributed: bool,
+    pub batch_id: String,
+    pub origin: String,
+    pub timestamp: i64,
+}
+
+impl ShellfishBatch {
+    pub const MAX_SIZE: usize = 4 + 32 + 4 + 32 + 8; // batch_id, origin, timestamp
 }
 
 #[account]
-pub struct Counter {
-    pub count: u64,
+pub struct Harvest {
+    pub batch_id: String,
+    pub weight_kg: u32,
+    pub harvest_time: i64,
 }
 
-#[error_code]
-pub enum CustomError {
-    #[msg("Shellfish batch has already been processed.")]
-    AlreadyProcessed,
-    #[msg("Shellfish batch has already been distributed.")]
-    AlreadyDistributed,
-    #[msg("Shellfish batch has not been processed yet.")]
-    NotProcessedYet,
+impl Harvest {
+    pub const MAX_SIZE: usize = 4 + 32 + 4 + 8; // batch_id, weight_kg, timestamp
 }
